@@ -1,0 +1,40 @@
+---
+title: "Lecture 1/9/2023"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+# Lecture, 1/9/2023
+
+## Basic Variables
+
+Example use of variables in R.
+
+```{r}
+x <- 5
+y <-3
+z <- x+y
+z
+```
+
+## Arrays
+
+Basic array construction and manipulation
+
+```{r}
+x <- c(1, 2, 3)
+y <- c(3.2, 1.2, -1.1)
+z <- x + y
+z
+x*y
+sin(x)
+```
+
+Create sequences
+
+```{r}
+seq(0, 1)
+seq(0, 1, length.out = 11) # equivalent of LinRange from matlab
+seq(0, 1, by = 0.2)
+```
