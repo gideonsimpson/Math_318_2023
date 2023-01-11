@@ -1,0 +1,33 @@
+---
+title: "QQ Plots"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+Show the use of Q-Q plots to compare distributions of random variables.
+
+```{r}
+set.seed(100)
+# generate synthetic data
+u <- runif(10^3)
+v <- runif(10^3, min=10,max=25)
+w <- runif(10^3)
+x <- rnorm(10^4)
+y <- rnorm(10^4, mean=10,sd=2)
+# generate plots. these are saved as png's for efficiency
+
+qqplot(u,v,main = "Q-Q Plot for Two Distinct Uniform Data Sets")
+
+qqplot(u,w,main = "Q-Q Plot for Two Uniform Data Sets")
+
+qqnorm(u, main = "Q-Q Plot for a Uniform Data Set against N(0,1)")
+
+qqplot(x,y,main = "Q-Q Plot for Two Distinct Normal Data Sets")
+
+qqnorm(y, main = "Q-Q Plot for a Normal Data Set against N(0,1)")
+
+qqline(y)
+
+```
