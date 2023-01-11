@@ -1,0 +1,31 @@
+---
+title: "Unbiasedness of Sample Variance"
+output: html_notebook
+---
+
+This example script verifies that, because the sample variance is computed using
+
+$$
+\frac{1}{N-1}\sum_{i=1}^N(x_i - \bar{x})^2
+$$
+
+where the important property is that it is divided by $N-1$ and not $N$, we obtain an unbiased estimate of the variance.
+
+```{r}
+set.seed(100)
+# Individual sample size
+N <- 10
+# Number of samples of size N to collect
+M <- 10^6
+# preallocate the array where we will store estimates of sigma2
+sigma2_vals <- vector(length = M)
+# Repeatedly generate samples of M elements and estimate the
+# variance, sigma2
+for (j in 1:M){
+  xdata <- rnorm(N)
+  sigma2_vals[j] <- var(xdata)
+}
+# print the mean of the computed sample variances
+mean(sigma2_vals)
+var(sigma2_vals)
+```
