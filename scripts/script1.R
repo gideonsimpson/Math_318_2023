@@ -5,6 +5,6 @@ xvalues <- runif(10, min=5., max= 25.5)
 # print the variables
 print(xvalues)
 # square the variables and store in a new array
-x2alues <- xvalues^2
+x2values <- xvalues^2
 # compute the mean and print it to the screen
 print(mean(x2values))
