@@ -1,0 +1,80 @@
+---
+title: "Lecture 1/11/2023"
+output: html_notebook
+---
+
+# Generating Random Variables
+
+Example of sampling the $U(0,1)$, uniform, distribution
+
+```{r}
+runif(1)
+runif(10)
+x <- runif(5)
+x
+```
+
+For $U(a,b)$,
+
+```{r}
+a <- 1
+b <- 5
+x <- runif(5,min = a, max= b)
+x
+y <- runif(5, min=1, max= 5)
+y
+```
+
+Reproducibility of random numbers can be achieved by settting the **seed**:
+
+```{r}
+set.seed(123)
+a <- 1
+b <- 5
+x <- runif(5,min = a, max= b)
+x
+set.seed(123) # reset seed before calling again
+y <- runif(5, min=1, max= 5)
+y
+```
+
+In any code involving random numbers, set a seed explicitly at the beginning.
+
+Gaussian random variable with mean $m$ and variance \$\\sigma\^2\$, $N(m, \sigma^2)$:
+
+```{r}
+set.seed(123)
+rnorm(1) #defaults to m = 0, sigma = 1
+rnorm(10)
+rnorm(10, mean = 5, sd = .1)
+```
+
+**NOTE** R parameterizes `rnorm` by mean and standard deviation, not variance.
+
+To call an R script, use the `source` command:
+
+```{r}
+source("~/code/Math_318_2023/scripts/script1.R")
+getwd()
+```
+
+```{r}
+getwd()
+```
+
+```{r}
+setwd("~/code/")
+getwd()
+```
+
+Elementary statistics:
+
+```{r}
+set.seed(100)
+xdata <- rnorm(100)
+mean(xdata)
+var(xdata)
+summary(xdata)
+quantile(xdata)
+quantile(xdata, .3) # get the 30% quantile
+```
