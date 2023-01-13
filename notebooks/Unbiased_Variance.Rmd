@@ -29,3 +29,7 @@ for (j in 1:M){
 mean(sigma2_vals)
 var(sigma2_vals)
 ```
+
+```{r}
+hist(sigma2_vals)
+```

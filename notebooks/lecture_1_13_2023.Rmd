@@ -1,0 +1,132 @@
+---
+title: "Lecture 1/13/2023"
+output: html_notebook
+---
+
+# Introducing tibbles and control structures
+
+```{r}
+library(tidyverse)
+cast <- tibble("Names" = c("Jerry", "George", "Elaine", "Cosmo"), 
+               "Ages"=c(38, 38, 37,999))
+cast
+```
+
+Change the 999 to `NA` , "not available"
+
+```{r}
+for (j in 1:nrow(cast)){
+  if(cast$Ages[j]>100){
+    cast$Ages[j] <- NA
+  }
+}
+print(cast)
+```
+
+# Loading in data
+
+```{r}
+library(readxl) # part of tidyverse
+```
+
+```{r}
+getwd()
+#grades <- read_excel("../data/Grades.xlsx")
+grades <- read_excel("/Users/grs53/code/Math_318_2023/data/Grades.xlsx")
+print(grades)
+```
+
+Tibble is a type of **data frame**:
+
+```{r}
+print(grades[1,])
+print(grades[2:5,])
+```
+
+`$names` are the names of the columns in the data frame
+
+```{r}
+attributes(grades) # find out details of the data frame
+print(grades$Grade)
+```
+
+Manipulations:
+
+```{r}
+summary(grades)
+```
+
+By default, R is treating the student ID as a numeric value; it is really categorical
+
+```{r}
+grades$Student <- factor(grades$Student) # convert to categorical type
+print(grades)
+summary(grades)
+```
+
+CSV, comma separated value, data is common
+
+```{r}
+grades.csv <- read.csv("../data/Grades.csv")
+print(grades.csv) # default data frame type
+grades.df <- as_tibble(grades.csv) # casts to tibble type
+print(grades.df)
+```
+
+# Getting data out of R
+
+```{r}
+x <- seq(0,1,length.out=11)
+print(x)
+write.csv(x,"xdata.csv")
+```
+
+```{r}
+set.seed(100)
+x <- runif(11)
+x.summary <- summary(x)
+write(x.summary, file="summary.txt")
+```
+
+# More manipulations of data sets
+
+```{r}
+library(ISLR2)
+print(Auto)
+```
+
+```{r}
+Auto <- as_tibble(Auto)
+Auto
+```
+
+```{r}
+Auto$cylinders <- factor(Auto$cylinders)
+summary(Auto$cylinders)
+```
+
+```{r}
+Auto$origin <- factor(Auto$origin)
+summary(Auto$origin)
+```
+
+```{r}
+Auto
+```
+
+# Intro to graphics
+
+```{r}
+x <-  seq(0,1,length.out=51)
+y <- x * (1-x) # (x,y) data set
+plot(x,y)
+```
+
+Dump to pdf: This plots the figure, first to the screen, and then opens a file, and saves the output to disk.
+
+```{r}
+plot(x,y, main ="Example Plot", xlab="x",  ylab="y", type = "l", col="blue", lwd=2)
+pdf(file="plot_example1.pdf") # open file for saving graphics
+plot(x,y, main ="Example Plot", xlab="x",  ylab="y", type = "l", col="blue", lwd=2)
+dev.off() # close graphics file
+```
