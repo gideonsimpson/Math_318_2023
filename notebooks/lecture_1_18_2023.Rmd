@@ -1,0 +1,123 @@
+---
+title: "Lecture 1/18/2023"
+output: html_notebook
+---
+
+# Graphics
+
+## Box Plots
+
+```{r}
+x <- rnorm(100, mean = 20, sd=2)
+```
+
+```{r}
+boxplot(x)
+```
+
+```{r}
+boxplot(x, main="Simple Box Plot Example", horizontal=TRUE, col = "red", notch=TRUE,
+        xlab="x", ylab="Data Set 1", cex.lab=1.50, cex.main=1.50, cex.axis=1.50)
+```
+
+Plot the mean with the boxplot
+
+```{r}
+boxplot(x, main="Box Plot with Mean", col ="paleturquoise3")
+abline(h = mean(x), col="navy", lwd=4)
+```
+
+How do we find colors?
+
+```{r}
+colors()
+```
+
+## Histograms
+
+```{r}
+x <- rnorm(1000,mean=20,sd=2)
+hist(x, breaks=10, main = "Histogram of Normal Data", prob=TRUE, xlab = "x Data")
+curve(dnorm(x, mean=20, sd=2), add=TRUE, col="navy", lwd=2)
+```
+
+# Graphics with ggplot
+
+```{r}
+library(ggplot2) # part of tidyverse
+```
+
+## Basic Line and Scatter Plots
+
+```{r}
+x <- seq(0,1, length.out=51)
+y <- x * (1-x)
+gplt <- ggplot(mapping = aes(x,y)) # base of the plot
+gplt <- gplt+geom_point()
+gplt <- gplt+ggtitle("Example ggplot2 plot")
+gplt <- gplt+xlab("x coordinate")
+gplt <- gplt+theme(plot.title = element_text(size=24))
+print(gplt)
+
+```
+
+## Interaction with Data Frames
+
+```{r}
+library(tibble)
+df <- tibble(Position=x, Measurement = y)
+df
+```
+
+```{r}
+gplt <- ggplot(df)
+gplt <- gplt+ geom_point(aes(x=Position, y = Measurement))
+print(gplt)
+```
+
+```{r}
+library(ISLR2) # for the Auto data set
+Auto
+```
+
+Explore the auto data set
+
+```{r}
+gplt <- ggplot(Auto)
+gplt <- gplt+geom_boxplot(aes(x=origin, y = mpg))
+print(gplt)
+```
+
+```{r}
+gplt <- ggplot(Auto)
+gplt <- gplt+geom_boxplot(aes(x=cylinders, y = mpg))
+print(gplt)
+```
+
+```{r}
+summary(Auto$cylinders)
+```
+
+Note that the labels are inherited from the dataframe and do not need to be entered manually
+
+```{r}
+gplt <- ggplot(Auto)
+gplt <- gplt+geom_boxplot(aes(x=origin, y = mpg, fill=cylinders))
+gplt <- gplt+ ggtitle("Boxplot distributions by cylinder and origin")
+print(gplt)
+```
+
+Explore pointwise data
+
+```{r}
+gplt <- ggplot(Auto)
+gplt <- gplt+geom_point(aes(x=horsepower, y = mpg))
+print(gplt)
+```
+
+```{r}
+gplt <- ggplot(Auto)
+gplt <- gplt+geom_point(aes(x=horsepower, y = mpg, color=cylinders))
+gplt <- gplt+ggtitle("Distribution of horsepower vs. mpg, by cylinders")
+print(gplt)
+```
