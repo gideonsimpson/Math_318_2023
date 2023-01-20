@@ -1,0 +1,140 @@
+---
+title: "Lecture 1/20/2023"
+output: html_notebook
+---
+
+# Revisiting Previous Lecture
+
+## Variable types and box plots
+
+```{r}
+library(ISLR2)
+library(tidyverse)
+```
+
+```{r}
+Auto
+```
+
+If you find that the variables `cylinders` or `origin` are not of type `fctr` , set them as folllows:
+
+```{r}
+Auto$cylinders <- as_factor(Auto$cylinders)
+Auto$origin <- as_factor(Auto$origin)
+```
+
+Now the `boxplot` command will work without trouble:
+
+```{r}
+gplt <- ggplot(Auto)
+gplt <- gplt+geom_boxplot(aes(origin, y = mpg))
+print(gplt)
+```
+
+## Annotating Figures
+
+It was asked if we could annotate the above figure to indicate how many samples were in each of the categories. The positions of the labels are manually set, but this can be automated.
+
+```{r}
+summary(Auto$origin)
+```
+
+```{r}
+gplt <- ggplot(Auto)
+gplt <- gplt+geom_boxplot(aes(x=origin, y = mpg))
+gplt <- gplt+annotate("text",x = c(1.1, 2.1, 3.1), y = c(30, 40,45), 
+                      label=sprintf("n = %d", summary(Auto$origin)),
+                      color="red")
+
+print(gplt)
+```
+
+The following builds a new data frame of just the counts, and uses that to construct the figure with less manual tweaking:
+
+```{r}
+# construct a new data frame of the counts by origin
+counts = tally(group_by(Auto, origin))
+# plot using this
+gplt <- ggplot(Auto)
+gplt <- gplt+geom_boxplot(aes(x=origin, y = mpg))
+#gplt <- gplt+geom_text(data=counts, aes(x=origin, label=sprintf("n = %d",n)), 
+ #                      y =max(Auto$mpg), color="red")
+gplt <- gplt+geom_label(data=counts, aes(x=origin, label=sprintf("n = %d",n)), 
+                       y =max(Auto$mpg), color="red")
+
+print(gplt)
+```
+
+# New Material
+
+```{r}
+gplt <- ggplot(Auto)+geom_point(aes(horsepower, mpg, color=cylinders))
+print(gplt)
+```
+
+## Facets
+
+Create subplots using categorical variables:
+
+```{r}
+gplt <- ggplot(Auto)+geom_point(aes(horsepower, mpg))
+gplt <- gplt+facet_wrap(~cylinders, nrow=2)
+gplt <- gplt+ ggtitle("Horsepower vs mpg, by Cylinders")
+print(gplt)
+```
+
+```{r}
+gplt <- ggplot(Auto)+geom_point(aes(horsepower, mpg))
+gplt <- gplt+facet_grid(origin~cylinders)
+gplt <- gplt+ ggtitle("Horsepower vs mpg, by Cylinders and Origin")
+print(gplt)
+```
+
+## QQ Plots
+
+See the lecture notes for how to do this with `ggplot2`
+
+```{r}
+# generate two data sets
+set.seed(100)
+u <- runif(10^3) # U(0,1), 10^3 samples
+v <- runif(10^3, min = 10, max = 25) # U(10, 25), 10^3 samples
+w <- runif(10^3) # U(0,1), 10^3 samples
+x <- rnorm(10^4) # N(0,1), 10^4 samples
+y <- rnorm(10^4, mean = 10, sd =2) # N(10,2^2), 10^4 samples
+z <- rnorm(10^3) # N(0,1), 10^3 samples
+```
+
+```{r}
+# u and v are not from the same distribution
+qqplot(u,v, main = "Q-Q Plot for Uniform Random Variables")
+abline(a=0, b= 1, col = "red")
+```
+
+```{r}
+# u and w are  from the same distribution
+qqplot(u,w, main = "Q-Q Plot for Uniform Random Variables")
+abline(a=0, b= 1, col = "red")
+```
+
+Because data falls on $y=x$ line, it is highly likely they are from the same distribution
+
+```{r}
+# u and x are from different distribution
+qqplot(u,x, main = "Q-Q Plot for U(0,1) against N(0,1)")
+abline(a=0, b= 1, col = "red")
+```
+
+```{r}
+qqplot(z,x, main = "Q-Q Plot for N(0,1) against N(0,1)")
+abline(a=0, b= 1, col = "red")
+```
+
+While some disagreement in the tails, this could be the same distribution
+
+```{r}
+qqplot(x,y, main = "Q-Q Plot for N(0,1) against N(10,2^2)")
+abline(a=0, b= 1, col = "red")
+```
+
+Even though it's on a line, it misses the $y=x$ line, so these are not the same distribution.
