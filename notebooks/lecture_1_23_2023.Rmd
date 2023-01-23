@@ -1,0 +1,129 @@
+---
+title: "Lecture 1/23/2023"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Correlations
+
+```{r}
+library(tidyverse)
+```
+
+## Toy Example
+
+Create data
+
+$$
+y_i = x_i^3 + \epsilon_i
+$$
+
+Think of $\epsilon$ as "noise" in the measurements, and for simplicity, assume $\epsilon_i \sim N(0, \sigma^2)$ for some particular variance, $\sigma$ .
+
+```{r}
+set.seed(100) # set a seed for reproducibility
+x <- seq(-5, 5, length=101) # 101 uniformly spaced points between -5 and 5
+xi <-  rnorm(length(x)) # create a vector of Gaussians with same size as x, N(0,1)
+
+# look at different magnitude noises
+sigma2_vals = c(0, 10, 50,100, 500) 
+
+# store in a data structure, data frame, with the columns we want
+df <- tibble(x = numeric(), y=numeric(), noise=factor())
+df
+
+```
+
+```{r}
+#populate the data frame
+for(j in 1:length(sigma2_vals)){
+  sigma2 = sigma2_vals[j] # get the jth coordinate
+  y <- x^3 + (sigma2) * xi # add noise with variance sigma2 to x^3
+  df <- add_row(df, x = x, y = y, noise = as.factor(sigma2))
+}
+df
+```
+
+Compute the data correlations between $x$ and $y$ at the different noise levels
+
+```{r}
+# vector of correlations at the three different noise levels
+correlations=c() # empty to start
+for(j in 1:length(sigma2_vals)){
+  sigma2 = sigma2_vals[j] # look at just the j-th noise case
+  correlations <- append(correlations, 
+                         cor(filter(df, noise == sigma2)$x,
+                             filter(df, noise == sigma2)$y))
+}
+correlations
+```
+
+Look at this visually
+
+```{r}
+plt <- ggplot(df) + geom_point(aes(x,y, color=noise))
+plt <- plt + scale_color_discrete(name="Noise Intensity")
+print(plt)
+```
+
+\
+Example of uncorrelated data: what to expect graphically:
+
+```{r}
+z <-  runif(length(x))
+df2 <- tibble(x = x, z =z)
+plt2 <- ggplot(df2)+ geom_point(aes(x, z))+ ggtitle("Example of Uncorrelated Data")
+print(plt2)
+```
+
+$Z$ is independent of $X$.
+
+## Correlations in a real data set
+
+Look at the `Auto` data set.
+
+```{r}
+library(ISLR2)
+Auto
+```
+
+Set categorical variables
+
+```{r}
+Auto$origin <- as_factor(Auto$origin)
+Auto$cylinders <- as_factor(Auto$cylinders)
+Auto$year <- as_factor(Auto$year)
+```
+
+Quickly look at all the pair correlations:
+
+```{r}
+# filter out non-numeric data types
+cor(select_if(Auto, is.numeric))
+```
+
+Correlation pairs are symmetric
+
+$$
+\text{Cor}(X,Y) = \text{Cor}(Y,X)
+$$\
+Diagonal is always 1 since
+
+$$
+\text{Cor}(X, X) = 1
+$$
+
+Quick observations:
+
+-   Larger engine correlates with more horsepower, and heavier vehicle
+
+-   Heavier vehicle negatively correlates with MPG
+
+Graphical version of this
+
+```{r}
+library(GGally)
+plt <- ggpairs(select_if(Auto, is.numeric))+ggtitle("Pair Correlations for Auto")
+print(plt)
+```
