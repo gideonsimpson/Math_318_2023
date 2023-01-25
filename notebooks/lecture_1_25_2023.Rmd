@@ -1,0 +1,223 @@
+---
+title: "1/25/2023 Lecture"
+output: html_notebook
+---
+
+# Confidence Intervals
+
+```{r}
+set.seed(100)
+x <- rnorm(10) # 10 N(0,1) random numbers
+mean(x)
+```
+
+How confident are we in that representing the population mean?
+
+```{r}
+set.seed(100)
+x <- rnorm(10^6) # 10^6 N(0,1) random numbers
+mean(x)
+```
+
+Computing the 95% CI in R:
+
+$$
+\left( \bar{x}_n - z_{1-\alpha/2} \frac{\hat{\sigma}_n}{\sqrt{n}}, \bar{x}_n + z_{1-\alpha/2} \frac{\hat{\sigma}_n}{\sqrt{n}} \right)
+$$
+
+on $n$ samples. $\bar{x}_n$ is the sample mean. $\hat{\sigma}_n$ is the sample standard dev., and $z_{1-\alpha/2}$ is the \$1-\\alpha/2\$% quantile of $N(0,1)$.
+
+For a given significance level, $\alpha$:
+
+-   Find the sample mean and standard dev
+
+-   Find $z_{1-\alpha/2}$
+
+```{r}
+set.seed(100)
+x <- rnorm(10^3) # 10^6 N(0,1) random numbers
+alpha = 0.05 # corresponds to 95% CI
+z = qnorm(1- alpha/2) # this is the z_{1-\alpha/2} score
+z
+
+```
+
+```{r}
+n = length(x)
+ci = c(mean(x) - z * sd(x)/sqrt(n),mean(x) + z * sd(x)/sqrt(n))
+ci
+```
+
+Built in tool for the CI:
+
+```{r}
+t.test(x)
+```
+
+```{r}
+t.test(x, conf.level=.9)
+```
+
+**NOTE**: This is performing a Student's t-test, not the z-test, so there is some deviation from 1.96 for 95% CIs when you have a small sample size.
+
+# More on Data Frames
+
+See Chapters 9 and 10 of <https://r4ds.had.co.nz> for additional details on this section.
+
+```{r}
+library(tidyverse)
+library(ISLR2) # for the Auto data frame
+```
+
+```{r}
+Auto
+```
+
+Use the `gather` command:
+
+```{r}
+Auto.long <- gather(Auto, key="variable", value, -year)
+```
+
+```{r}
+Auto.long
+```
+
+Set it to keep some things numerical:
+
+```{r}
+
+Auto.long.numeric <- gather(Auto, key=variable, value, -cylinders, -year, -origin)
+```
+
+```{r}
+Auto.long.numeric
+```
+
+Mapping data back into columns,
+
+```{r}
+Auto.short <- spread(Auto.long, key=variable, value = value)
+```
+
+Is not possible
+
+Example of why we would bother:
+
+```{r}
+stocks <- tibble(time = as.Date('2009-01-01') + 0:9, 
+                 X = rnorm(10, 0,1), 
+                 Y = rnorm(10, 0 ,2),
+                 Z = rnorm(10,0,4))
+stocks
+```
+
+At each date, we have the stock "price" for X, Y, and Z. Each row contains **three** observations (X,Y,Z).
+
+```{r}
+stocks.long <- gather(stocks, key=symbol, value = price, -time)
+stocks.long
+```
+
+Now each row is a single measurement. Since time/symbol pairs are unique, this can be undone:
+
+```{r}
+stocks.short <- spread(stocks.long, key=symbol, value = price)
+stocks.short
+```
+
+## Filtering Data
+
+Look at cars only from 1970:
+
+```{r}
+Auto.70 <- filter(Auto, year == 70)
+summary(Auto.70)
+```
+
+Filter by cylinders and year:
+
+```{r}
+Auto.subset <- filter(Auto, year> 75, cylinders ==4)
+summary(Auto.subset)
+```
+
+Filter by columns:
+
+```{r}
+Auto.subset <- select(Auto, mpg, cylinders, displacement)
+Auto.subset
+```
+
+Want statistics for certain subsets of the data. Get the 25- and 75-percentile of MPG, as a function of cylinders:
+
+```{r}
+by.cylinders <- group_by(Auto, cylinders) # separates data by cylinders factor
+summarize(by.cylinders, "25% Quantile"= quantile(mpg)[2],"75% Quantile"=quantile(mpg)[4])
+```
+
+Recall:
+
+```{r}
+quantile(Auto$mpg)
+```
+
+```{r}
+by.cylinders <- group_by(Auto, cylinders) # separates data by cylinders factor
+summarize(by.cylinders, "Mean MPG"= mean(mpg))
+```
+
+```{r}
+by.cylinders
+```
+
+## Adding Rows and Columnbs
+
+```{r}
+df <- tibble(x=1:3, y = 3:1)
+df
+```
+
+Add a row
+
+```{r}
+add_row(df, x= 5, y = -4)
+```
+
+```{r}
+add_column(df, sample = "one")
+```
+
+## Combining two data frames
+
+```{r}
+df1 <- tibble(x=1:3, y = 3:1)
+df2 <- tibble(x=runif(3), y = rnorm(3))
+union_all(df1, df2)
+```
+
+## Cleaning data
+
+Remove `NA` from tables
+
+```{r}
+x= seq(1:10)
+y <- x^2
+y[4]= NA
+xy.df <- tibble(x=x,y=y)
+```
+
+```{r}
+xy.df
+```
+
+Clean the observation with missing entry:
+
+```{r}
+xy.clean.df <- na.omit(xy.df)
+xy.clean.df
+```
+
+```{r}
+NaN
+```
