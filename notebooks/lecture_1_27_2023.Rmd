@@ -1,0 +1,58 @@
+---
+title: "1/27/2023 Lecture"
+output: html_notebook
+---
+
+# Intro to Regression
+
+Generate some sample data, and then learn
+
+$$
+y = \hat{\beta}_0  + \hat{\beta}_1 x
+$$
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+set.seed(100)
+x <- seq(0,1,length=15) # N = 15 here
+beta0_true = 2.0
+beta1_true = -1.5
+eps = 0.1 # noise the parameter
+y <-beta0_true + beta1_true *x + eps * rnorm(length(x)) # adds gaussian noise to the data
+df <- tibble(x=x, y= y)
+```
+
+Inspect the data
+
+```{r}
+plt <-  ggplot(df) + geom_point(aes(x,y))
+print(plt)
+```
+
+Command for linear regression is `lm` :
+
+```{r}
+lm1 <-  lm(y~x, df) # learn the linear model for y as a function of x using the dataframe
+print(lm1)
+```
+
+`(Intercept)` corresponds to $\hat{\beta}_0$ and the value next to `x` is $\hat{\beta}_1$. These values fit the truth pretty well. Visualize results with `ggplot2` :
+
+```{r}
+plt <- ggplot(df, aes(x,y)) + geom_point() +
+  geom_smooth(method = lm) +  # plots the regression lm(y ~ x) with CI
+  ggtitle("Linear model with 95% CI")
+print(plt)
+```
+
+Reverse choice of coordinates:
+
+```{r}
+plt <- ggplot(df, aes(y,x)) + geom_point() +
+  geom_smooth(method = lm) +  # plots the regression lm(y ~ x) with CI
+  ggtitle("Linear model with 95% CI")
+print(plt)
+```
