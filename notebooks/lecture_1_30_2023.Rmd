@@ -1,0 +1,50 @@
+---
+title: "1/30/2023 Lecture"
+output: html_notebook
+---
+
+# Regression, Continued
+
+```{r}
+library(tidyverse)
+```
+
+Data from last time,
+
+$$
+y_i = \beta_0 + \beta_1 x_i + \epsilon_i, \epsilon_i \sim N(0, \epsilon^2)
+$$
+
+```{r}
+set.seed(100)
+x <- seq(0,1,length=15) # N = 15 here
+beta0_true = 2.0
+beta1_true = -1.5
+eps = 0.1 # noise the parameter
+y <-beta0_true + beta1_true *x + eps * rnorm(length(x)) # adds gaussian noise to the data
+df <- tibble(x=x, y= y)
+```
+
+```{r}
+plt <-  ggplot(df) + geom_point(aes(x,y))
+print(plt)
+```
+
+Fit the linear model
+
+```{r}
+lm1 <- lm(y~x, df) # regress y against x, using data frame df
+print(lm1)
+```
+
+Get information about the quality of the fit:
+
+```{r}
+summary(lm1)
+```
+
+Get confidence intervals for the coefficients:
+
+```{r}
+confint(lm1)
+```
