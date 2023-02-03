@@ -1,0 +1,99 @@
+---
+title: "2/3/2023 Lecture"
+output: html_notebook
+---
+
+# Multilinear Regression
+
+```{r}
+library(tidyverse)
+```
+
+## Simple Example
+
+Create some data,
+
+$$
+Y = 5 + 2 X_1 -3 X_2 + \epsilon
+$$
+
+```{r}
+n = 15 # number of observations
+beta0 = 5
+beta1 = 2
+beta2 = -3 # true coefficients
+
+x1 <-  runif(n, min=-2, max=2) # create random measurement points
+x2 <-  runif(n, min=-2, max=2)
+# data
+y = beta0+beta1*x1 + beta2*x2 + rnorm(n) # add some noise
+y
+```
+
+Fit the model
+
+```{r}
+df <- tibble(x1=x1, x2=x2, y=y) # package data into a tibble
+
+multi <- lm(y~ x1 + x2,df) # regress
+```
+
+```{r}
+print(multi)
+```
+
+Report confidence intervals (95%) for the coefficients
+
+```{r}
+confint(multi)
+
+```
+
+## Multilinear regression in the Auto dataset
+
+```{r}
+library(ISLR2)
+```
+
+Look at pair correlations for insight in what might relate to what:
+
+```{r}
+cor(select_if(Auto, is.numeric))
+```
+
+```{r}
+cor.df <- cor(select_if(Auto, is.numeric))
+```
+
+```{r}
+cor.df <- as_tibble(cor.df)
+```
+
+```{r}
+cor.df
+```
+
+```{r}
+abs(cor.df["mpg"])>0.8
+```
+
+```{r}
+names(cor.df)[abs(cor.df["mpg"])>0.8]
+```
+
+Try a linear model using displacement, horsepower and weight, to predict MPG. But lets do a different fit for each number of cylinders and report results:
+
+```{r}
+for (cyl in sort(unique(Auto$cylinders))){
+  cat("Case of cylinders = ", cyl)
+  # fit horsepower, weight, displacement, and segment data cylindres, from Auto dataframe
+  auto_lm <- lm(mpg~horsepower+weight+displacement, I(cylinders==cyl), data=Auto)
+  print(summary(auto_lm))
+}
+```
+
+Look at a particular case
+
+```{r}
+lm(mpg~horsepower+weight+displacement, data=filter(Auto, cylinders==4))
+```
