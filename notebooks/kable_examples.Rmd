@@ -1,0 +1,51 @@
+---
+title: "kable Examples"
+output: html_notebook
+---
+
+# Example usage of kables
+
+```{r}
+library(knitr)
+library(kableExtra)
+```
+
+Consider, first, the `Auto` dataframe:
+
+```{r}
+Auto
+```
+
+The basic `kable` formatted version is:
+
+```{r}
+kable(Auto)
+```
+
+Notice that this looks better, but it includes a column on the left with row numbers, which we may not want. We can also add a table title caption:
+
+```{r}
+kable(Auto, row.names = FALSE, caption = "Auto data formatted as a kable")
+```
+
+Tweaks to the appearance can be generated with the `kableExtra` package. the following uses the `kable_styling` style, makes better horizontal use of space, and alternates striping of the rows:
+
+```{r}
+kb1 <- kable(Auto, row.names = FALSE, caption = "Auto data formatted as a kable")
+kable_styling(kb1, full_width =FALSE, bootstrap_options = "striped")
+```
+
+As another example:
+
+```{r}
+kb1 <- kable(Auto, row.names = FALSE, caption = "Auto data formatted as a kable")
+kable_classic(kb1, full_width =FALSE, bootstrap_options = "striped", font_size = 10)
+```
+
+Additional details on options and styles can be found at:
+
+-   <https://bookdown.org/yihui/rmarkdown-cookbook/kable.html>
+
+-   <https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html>
+
+amongst other websites. You are encouraged to use such output
