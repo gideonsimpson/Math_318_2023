@@ -1,0 +1,119 @@
+---
+title: "2/6/2023 Lecture"
+output: html_notebook
+---
+
+# Fitting Nonlinear Models
+
+```{r}
+library(tidyverse)
+```
+
+Generate data of the form
+
+$$
+y= x + .5 x^2 - .25 x^3 + \epsilon
+$$
+
+where $\epsilon$ is Gaussian noise.
+
+```{r}
+set.seed(100)
+n = 100 # n = 100 observations
+x <- runif(n, min = 0, max=4) # sample from Unif(0,4)
+y <- x + 0.5 * x**2 -0.25 * x**3 + 0.1 * rnorm(length(x))
+df <- tibble(x=x,y=y)
+```
+
+Inspect data
+
+```{r}
+plt <- ggplot(df, aes(x,y))+geom_point()
+print(plt)
+```
+
+## Linear fitting with nonlinear models
+
+Try a quadratic model (**note**: the data came from a cubic model):
+
+```{r}
+model2 <- lm(y~x+I(x^2),df)
+summary(model2)
+```
+
+Check confidence intervals of the coefficients
+
+```{r}
+confint(model2)
+```
+
+Try a cubic fit:
+
+```{r}
+model3 <- lm(y~x+I(x^2)+I(x^3),df)
+summary(model3)
+```
+
+Check the confidence intervals
+
+```{r}
+confint(model3)
+```
+
+Visualize the two different fits:
+
+```{r}
+plt <- ggplot(df, aes(x,y)) +
+  geom_point() +
+  geom_smooth(method=lm, formula = y~x + I(x^2), col ="blue")+
+  geom_smooth(method=lm, formula = y~x + I(x^2)+I(x^3), col="red")
+print(plt)
+```
+
+Cubic fits better, but the quadratic isn't bad.
+
+Higher degree polynomials:
+
+```{r}
+plt <- ggplot(df, aes(x,y)) +
+  geom_point() +
+  geom_smooth(method=lm, formula = y~x + I(x^2), col ="blue")+
+  geom_smooth(method=lm, formula = y~poly(x,3), col="red")+
+  geom_smooth(method=lm, formula = y~poly(x,25), col="green")
+print(plt)
+```
+
+High degree polynomials lead to **overfitting**.
+
+# Table formatting in R Markdown
+
+```{r}
+library(knitr) # need the kable's
+library(kableExtra) # for kable formatting options
+library(tidyverse)
+```
+
+```{r}
+Auto.summary <- summary(select_if(Auto,is.numeric))
+```
+
+```{r}
+Auto.summary
+```
+
+Basic `kable`:
+
+```{r}
+kable(Auto.summary) # pass in data frame or analogous data structure
+```
+
+```{r}
+kable(Auto.summary, caption="Auto Summary")
+```
+
+Using `kableExtra` features
+
+```{r}
+kb1 <- kable(Auto.summary, caption="Auto Summary")
+kable_styling(kb1,bootstrap_options = "striped")
+```
