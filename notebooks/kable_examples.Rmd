@@ -49,3 +49,11 @@ Additional details on options and styles can be found at:
 -   <https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html>
 
 amongst other websites. You are encouraged to use such output
+
+kable formatted output can be saved to disk, though it may lose some formatting
+
+```{r}
+kb1 <- kable(Auto, row.names = FALSE, caption = "Auto data formatted as a kable")
+kb1 <- kable_material(kb1, full_width =FALSE, bootstrap_options = "striped", font_size = 10)
+save_kable(kb1,"kable.html")
+```
