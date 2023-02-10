@@ -1,0 +1,67 @@
+---
+title: "2/10/23 Lecture"
+output: html_notebook
+---
+
+# Categorical Response Variables
+
+```{r}
+library(tidyverse)
+library(ISLR2)
+```
+
+Look at the `Default` dataset, part of `ISLR2`.
+
+```{r}
+Default <- as_tibble(Default)
+Default
+```
+
+This is credit card/financial information. Want to predict if a customer will default, based on if they are a student (or not), their income, and their credit card balance.
+
+Visualize defaults
+
+```{r}
+box_plt <- ggplot(Default, aes(default, balance)) + geom_boxplot()
+print(box_plt)
+```
+
+Does income play a role?
+
+```{r}
+box_plt <- ggplot(Default, aes(default, income)) + geom_boxplot()
+print(box_plt)
+```
+
+Try to use linear regression: use built in `ggplot2` for simplicity
+
+```{r}
+lm_plt <- ggplot(Default, aes(x=balance, y = as.numeric(default)-1)) + geom_point() +
+  geom_smooth(method=lm, formula = y~x) + xlab("Balance") + ylab("Default Probability") +
+  ggtitle("Default Data")
+print(lm_plt)
+```
+
+```{r}
+as.numeric(Default$default)-1 # check what this is doing
+```
+
+Train a logistic classifier using `glm`
+
+```{r}
+default_classifier <- glm(default~balance,data=Default, family = binomial)
+```
+
+Returns $\hat{\beta}_0$ and $\hat{\beta}_1$ to get the default classifier
+
+$$
+\mathbb{P}(Default\mid balance) = \phi(\hat{\beta}_0 + \hat{\beta}_1\times balance)
+$$
+
+```{r}
+default_classifier
+```
+
+```{r}
+summary(default_classifier)
+```

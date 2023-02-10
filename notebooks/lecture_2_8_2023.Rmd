@@ -1,0 +1,70 @@
+---
+title: "2/8/20223 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(FNN)
+library(tidyverse)
+```
+
+# K-Nearest Neighbors Example
+
+Generate toy data
+
+```{r}
+set.seed(100)
+x <-  runif(250, min = 0, max=10)
+y <- x + sin(2*pi * x) * (1 + .1 * rnorm(x))
+df <- tibble(x=x,y=y)
+```
+
+Visualize the data set
+
+```{r}
+true_f <- function(x){x+sin(2*pi*x)}
+plt <- ggplot(df, aes(x,y))+geom_point() + 
+  stat_function(fun=true_f,linetype="dashed", color="red")
+print(plt)
+```
+
+To use this particular form of kNN, in `FNN`, pick the points for evaluation:
+
+```{r}
+test_x = seq(0,10,length.out=51)
+test.df <- tibble(x=test_x, y = rep(0, length(test_x)))
+```
+
+Now predict with K nearest neighbors,
+
+```{r}
+y_pred <- knn.reg(as.matrix(df[,1]), test = as.matrix(test.df[,1]), as.matrix(df[,2]), k = 3)
+```
+
+This kNN requires data to be in matrix form:
+
+```{r}
+df[,1] # these is column 1 of the data frame, the x positions
+```
+
+```{r}
+as.matrix(df[,1]) # cast to matrix type
+```
+
+What did we get?
+
+```{r}
+y_pred
+```
+
+These are the predicted \$y\$'s at the testing values of $x$:
+
+```{r}
+true_f <- function(x){x+sin(2*pi*x)}
+test.df <- tibble(x=test_x, y=y_pred$pred)
+
+plt <- ggplot(df, aes(x,y))+geom_point() + 
+  stat_function(fun=true_f,linetype="dashed", color="red") +
+  geom_point(test.df, mapping=aes(x,y), color="blue")
+print(plt)
+```

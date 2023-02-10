@@ -6,8 +6,8 @@ output: html_notebook
 # Example usage of kables
 
 ```{r}
-library(knitr)
-library(kableExtra)
+library(knitr) # gives you kables
+library(kableExtra) # gives formatting tools
 ```
 
 Consider, first, the `Auto` dataframe:
@@ -32,7 +32,7 @@ Tweaks to the appearance can be generated with the `kableExtra` package. the fol
 
 ```{r}
 kb1 <- kable(Auto, row.names = FALSE, caption = "Auto data formatted as a kable")
-kable_styling(kb1, full_width =FALSE, bootstrap_options = "striped")
+kable_styling(kb1, full_width =FALSE, bootstrap_options = "striped") # kable_styling comes from kableExtra
 ```
 
 As another example:
