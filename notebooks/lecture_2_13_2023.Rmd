@@ -1,0 +1,127 @@
+---
+title: "2/13/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ISLR2)
+```
+
+# Classifiers, Continued
+
+Code from last week:
+
+```{r}
+Default <- as_tibble(Default) # load in data set as a tibble
+default_classifier <- glm(default~balance,data=Default, family = binomial) # fit the classifier
+```
+
+Make predictions based on the trained classifier
+
+```{r}
+Default
+```
+
+```{r}
+pred_prob <- predict(default_classifier, type="response") # record the predicted probability of default for the 10,000 entries in Default
+pred_prob[1:5] # probability fo default for the first 5 entries
+```
+
+Check accuracy of predictions vs. truth:
+
+```{r}
+default_pred <- rep("No", 10000) # vector against which we will compare
+default_pred[pred_prob> 0.5] <- "Yes"
+```
+
+Compute the confusion matrix
+
+```{r}
+table(default_pred, Default$default)
+```
+
+233 did default, but would not have been caught by the classifier (false negatives), and 42 did not default, but would have marked as defaulting by the classifier (false positives)
+
+333 defaulted, but classifier only catches 100/333 are caught successfully.
+
+How do we make a new prediction with the (bad) classifier? Create a data frame of new test points:
+
+```{r}
+new_pt <- tibble(default=as.factor("Yes"), student = as.factor("No"), balance= 800, income= 44500) # creates a single new entry
+predict(default_classifier, newdata = new_pt, type="response")
+```
+
+This case has a 1.9% probability of defaulting.
+
+Visualization of the classifier and its weakness:
+
+```{r}
+classifier_plt <- ggplot(Default, mapping=aes(x=balance, y=as.numeric(default)-1)) + 
+  geom_point() +xlab("Balance") + ylab("Default") + 
+  geom_smooth(method=glm, formula=y~x, method.args = list(family="binomial"))
+print(classifier_plt)
+```
+
+Suppose we want to plot the decision boundary; need the $\beta$'s:
+
+```{r}betas <- default_classifier$coefficients}
+betas
+p_t = 0.5
+x_t =(log(p_t/(1-p_t)) -betas[1])/betas[2]
+x_t
+
+```
+
+Add this as a vertical line:
+
+```{r}
+classifier_plt <- ggplot(Default, mapping=aes(x=balance, y=as.numeric(default)-1)) + 
+  geom_point() +xlab("Balance") + ylab("Default") + 
+  geom_smooth(method=glm, formula=y~x, method.args = list(family="binomial")) +
+  geom_vline(aes(xintercept=x_t), color="red")
+print(classifier_plt)
+```
+
+# Training, Testing, and Validation
+
+We trained on 10000 data points. Instead, we train on a fraction of the data, then test the performance of the model on the held out data; this is not just for classifiers.
+
+We will split the data in two sets, train on some, test on the rest.
+
+```{r}
+train_idx <- 1:floor(0.7 * nrow(Default)) # get indices of 70% of the data; determinisitic
+train.df <- Default[train_idx,] #create a training data frame
+train.df
+```
+
+How do we get the testing set?
+
+```{r}
+test.df <- Default[-train_idx,] # get the indices that are not in the training set
+test.df
+```
+
+```{r}
+#train only on training data
+class.train <- glm(default~balance,data=train.df, family = binomial) # fit the classifier
+# get predicted probability of default on the training data
+train.prob <-predict(class.train, newdata=train.df, type="response")
+# maps probablities to yes or no
+train.pred <- rep("No", nrow(train.df))
+train.pred[train.prob>0.5] <- "yes"
+# report the training error rate
+sprintf("Training Error Rate = %g", mean(train.pred!=train.df$default))
+```
+
+```{r}
+# get predicted probability of default on the testing data
+test.prob <-predict(class.train, newdata=test.df, type="response")
+# maps probablities to yes or no
+test.pred <- rep("No", nrow(test.df))
+test.pred[test.prob>0.5] <- "yes"
+# report the training error rate
+sprintf("Testing Error Rate = %g", mean(test.pred!=test.df$default))
+```
+
+Next time, randomize the training/testing split.
