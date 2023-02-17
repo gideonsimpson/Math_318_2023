@@ -1,0 +1,56 @@
+---
+title: "2/17/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ISLR2)
+library(MASS) # for LDA and QDA regressions
+```
+
+# Mixture Models
+
+Have two Gaussians, $N(-1,1^2)$ and $N(2,1^2)$, and the probability of first is 0.3, and the second is 0.7.
+
+```{r}
+set.seed(100) # set seed for reproducibility
+# defines and the standard devs of the two Gaussians
+mu <- c(-1, 2)
+sigma <- c(1., 1.)
+# prior probabilities
+prior <- c(0.3, 0.7)
+
+# number of total samples we draw from the mixture model
+n = 10^4
+
+# first sample the class varaible n times
+class<- sample(1:2,n,replace = TRUE, prob = prior)
+# convert to categorical variable
+class <- as.factor(class)
+# sample the x values (what we measure in practice)
+# preallocates the array
+x <- numeric(n)
+for(j in 1:n){
+  # sample Gaussian 1 or Gaussian 2 as appropriate
+  x[j] <- rnorm(1,mean = mu[class[j]], sd = sigma[class[j]])
+}
+# store as a tibble
+mixture.df <- tibble("class"=class, "x"=x)
+
+```
+
+```{r}
+hist.all <- ggplot(mixture.df, aes(x)) +
+  geom_histogram(bins = 50) + ggtitle("All Data")
+print(hist.all)
+
+```
+
+```{r}
+hist_split <- ggplot(mixture.df, aes(x=x, fill=class)) +
+  geom_histogram(alpha=0.5, bins=50, position = "identity") +
+  ggtitle("Data Split by Class") + labs(fill="Class") 
+print(hist_split)
+
+```
