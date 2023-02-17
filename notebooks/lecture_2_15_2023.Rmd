@@ -1,0 +1,127 @@
+---
+title: "2/15/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ISLR2)
+
+```
+
+# More on Classifiers
+
+Randomizing the testing/training split
+
+Set things up, as in last class:
+
+```{r}
+Default <- as_tibble(Default) # load in data set as a tibble
+Default
+```
+
+Split the data 70% for training, 30% for testing, by randomly choosing \~70% of the indices
+
+```{r}
+set.seed(100) # since we are randomizing
+n_train <- floor(.7 * nrow(Default)) # get an integer value with floor function, of 0.70 * No. of Samples
+n_train
+train_idx <- sample(seq_len(nrow(Default)), size=n_train) # randomly sample the array, without replacement, size number of times.  seq_len function creates 1...10000, the number of rows
+train_idx
+```
+
+```{r}
+seq_len(10)
+```
+
+Split the data:
+
+```{r}
+train.df <- Default[train_idx,]
+test.df <- Default[-train_idx,]
+```
+
+Train the classifier on `train.df`, and test the performance on `test.df` . If the errors are similar, that's a sign this is adequate.
+
+```{r}
+#train only on training data
+class.train <- glm(default~balance,data=train.df, family = binomial) # fit the classifier
+# get predicted probability of default on the training data
+train.prob <-predict(class.train, newdata=train.df, type="response")
+# maps probablities to yes or no
+train.pred <- rep("No", nrow(train.df))
+train.pred[train.prob>0.5] <- "yes"
+# report the training error rate
+sprintf("Training Error Rate = %g", mean(train.pred!=train.df$default))
+
+```
+
+```{r}
+# get predicted probability of default on the testing data
+test.prob <-predict(class.train, newdata=test.df, type="response")
+# maps probablities to yes or no
+test.pred <- rep("No", nrow(test.df))
+test.pred[test.prob>0.5] <- "yes"
+# report the training error rate
+sprintf("Testing Error Rate = %g", mean(test.pred!=test.df$default))
+
+```
+
+Consistency of the error estimates implies we are doing a good job with the data set and modelling assumptions we have made:
+
+-   We have assumed a logistic classifier
+
+-   We have assumed it only depends on the balance
+
+    $$
+    \mathbb{P}(\text{Default}\mid \text{balance}=X) = \phi(\beta_0 + \beta_1 X)
+    $$
+
+where $\phi$ is the logistic (S-shaped) function. To do better, we must:
+
+-   Add data
+
+-   Get better data
+
+-   Extend/augment the model
+
+Visualize in both `balance` and `income` :
+
+```{R}
+plt <- ggplot(Default, aes(shape=default, color=default)) +
+  geom_point(aes(balance,income))
+print(plt)
+
+```
+
+```{r}
+#train only on training data
+class.train <- glm(default~balance+income,data=train.df, family = binomial) # fit the classifier
+# get predicted probability of default on the training data
+train.prob <-predict(class.train, newdata=train.df, type="response")
+# maps probablities to yes or no
+train.pred <- rep("No", nrow(train.df))
+train.pred[train.prob>0.5] <- "yes"
+# report the training error rate
+sprintf("Training Error Rate = %g", mean(train.pred!=train.df$default))
+
+```
+
+```{r}
+# get predicted probability of default on the testing data
+test.prob <-predict(class.train, newdata=test.df, type="response")
+# maps probablities to yes or no
+test.pred <- rep("No", nrow(test.df))
+test.pred[test.prob>0.5] <- "yes"
+# report the training error rate
+sprintf("Testing Error Rate = %g", mean(test.pred!=test.df$default))
+
+```
+
+This is slightly improved over the `balance` only model.
+
+By converting `student` to a numeric (0 or 1) value, that can also be included in the model.
+
+```{r}
+Default
+```
