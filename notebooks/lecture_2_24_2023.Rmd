@@ -1,0 +1,227 @@
+---
+title: "2/24/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ISLR2)
+library(MASS) # for LDA and QDA regressions
+```
+
+# 2D LDA
+
+Generate the Gaussian mixture model training set:
+
+```{r}
+set.seed(100)
+
+# true means
+mu1 <- c(-1, -1)
+mu2 <- c(-1, 1)
+mu3 <- c(2,0)
+# true covariances
+sigma1vals <- c(1., 1.)
+sigma2vals <- c(1., 1.)
+sigma3vals <- c(1., 2.)
+# priors
+prior <- c(0.25, 0.5, 0.25)
+# total number of samples
+n = 10^4
+
+# training data
+# sample with replacement from 1,2,3 n times
+# with prob(1) = pi[1], prob(2)=pi[2], prob(3)=pi[3]
+class<- sample(1:3, n, replace = TRUE, prob=prior)
+# interpret as a categorical variable
+class <- factor(class)
+x <- numeric(n)
+y <- numeric(n)
+for(j in 1:n){
+  # loop through switching between cases
+  if(class[j]==1){
+    x[j] <- rnorm(1,mean = mu1[1], sd = sigma1vals[1])
+    y[j] <- rnorm(1,mean = mu1[2], sd = sigma1vals[2])
+  }else if(class[j]==2){
+    x[j] <- rnorm(1,mean = mu2[1], sd = sigma2vals[1])
+    y[j] <- rnorm(1,mean = mu2[2], sd = sigma2vals[2])
+  }else{
+    x[j] <- rnorm(1,mean = mu3[1], sd = sigma3vals[1])
+    y[j] <- rnorm(1,mean = mu3[2], sd = sigma3vals[2])
+  }
+}
+train.df <- tibble("class"=class, "x"=x, "y"=y)
+
+```
+
+Visualize the training data set
+
+```{r}
+mixture2d.plt <- ggplot(train.df, aes(color=class))+geom_point(aes(x=x,y=y))
+print(mixture2d.plt)
+```
+
+Fit a classifier on the 2D data:
+
+```{r}
+lda.2d <- lda(class~x+y, data = train.df)
+print(lda.2d)
+```
+
+Check performance:
+
+```{r}
+pred.train <- predict(lda.2d)
+mean(pred.train$class != train.df$class)
+table(pred.train$class, train.df$class)
+
+```
+
+Visualize performance
+
+```{r}
+# store the (x,y), the prediction, the truth, and correct/false
+plt.df <- tibble(x=train.df$x, y=train.df$y, predicted=as.factor(pred.train$class),
+                 truth=train.df$class, correct =(pred.train$class==train.df$class) )
+lda2d.plt <- ggplot(plt.df, aes(color=predicted, shape=correct,size=correct)) +
+  geom_point(aes(x=x,y=y)) +
+  scale_shape_manual(values = c(4,20)) +
+  scale_size_manual(values=c(4,1))
+print(lda2d.plt)
+```
+
+Color code by correct/incorrect:
+
+```{r}
+lda2d.plt <- ggplot(plt.df, aes(color=correct, shape=predicted)) +
+  geom_point(aes(x=x,y=y)) 
+print(lda2d.plt)
+```
+
+Alternative plotting tool
+
+```{r}
+library(klaR)
+```
+
+```{r}
+partimat(factor(class)~y+x, data=train.df, method="lda")
+```
+
+# 2D QDA
+
+```{r}
+qda.2d <- qda(class~x+y, data = train.df)
+pred.train <- predict(qda.2d)
+mean(pred.train$class != train.df$class)
+table(pred.train$class, train.df$class)
+
+```
+
+```{r}
+plt.df <- tibble(x=train.df$x, y=train.df$y, predicted=as.factor(pred.train$class),
+                 truth=train.df$class, correct =(pred.train$class==train.df$class) )
+qda2d.plt <- ggplot(plt.df, aes(color=predicted, shape=correct,size=correct)) +
+  geom_point(aes(x=x,y=y)) +
+  scale_shape_manual(values = c(4,20)) +
+  scale_size_manual(values=c(4,1))
+print(qda2d.plt)
+```
+
+# Nearest Neighbors Classifiers
+
+```{r}
+library(FNN) # library with nearest neighbors classifier
+```
+
+```{r}
+set.seed(100)
+
+# true means
+mu1 <- c(-1, -1)
+mu2 <- c(-1, 1)
+mu3 <- c(2,0)
+# true variances
+sigma1vals <- c(1., 1.)
+sigma2vals <- c(1., 1.)
+sigma3vals <- c(1., 2.)
+# priors
+prior <- c(0.25, 0.5, 0.25)
+# total number of samples
+n = 2* 10^4
+
+# training data
+# sample with replacement from 1,2,3 n times
+# with prob(1) = pi[1], prob(2)=pi[2], prob(3)=pi[3]
+class<- sample(1:3, n, replace = TRUE, prob=prior)
+# interpret as a categorical variable
+class <- factor(class)
+x <- numeric(n)
+y <- numeric(n)
+for(j in 1:n){
+  # loop through switching between cases
+  if(class[j]==1){
+    x[j] <- rnorm(1,mean = mu1[1], sd = sigma1vals[1])
+    y[j] <- rnorm(1,mean = mu1[2], sd = sigma1vals[2])
+  }else if(class[j]==2){
+    x[j] <- rnorm(1,mean = mu2[1], sd = sigma2vals[1])
+    y[j] <- rnorm(1,mean = mu2[2], sd = sigma2vals[2])
+  }else{
+    x[j] <- rnorm(1,mean = mu3[1], sd = sigma3vals[1])
+    y[j] <- rnorm(1,mean = mu3[2], sd = sigma3vals[2])
+  }
+}
+data.df <- tibble("class"=class, "x"=x, "y"=y)
+
+# split into training/testing sets
+train.df <- data.df[1:10000,]
+test.df <- data.df[-(1:10000),]
+
+```
+
+Check what `as.matrix` does:
+
+```{r}
+as.matrix(train.df[2:3])
+```
+
+To use `knn`'s nearest neighbors predictors, we have to pass the data in matrix format, and we pass it both the training and testing/new point evaluation all at once:
+
+```{r}
+knn.test.pred <- knn(as.matrix(train.df[2:3]), 
+                     as.matrix(test.df[2:3]), 
+                     as.matrix(train.df[1]), k=3) # 3 nearest neighbors
+table(knn.test.pred, test.df$class)
+
+sprintf("Testing Error Rate = %g", mean(knn.test.pred != test.df$class))
+```
+
+```{r}
+knn.train.pred <- knn(as.matrix(train.df[2:3]), 
+                     as.matrix(train.df[2:3]), 
+                     as.matrix(train.df[1]), k=3) # 3 nearest neighbors
+table(knn.train.pred, train.df$class)
+
+sprintf("Training Error Rate = %g", mean(knn.train.pred != train.df$class))
+```
+
+```{r}
+train.plt.df <- tibble(x=train.df$x, y=train.df$y, predicted=as.factor(knn.train.pred), 
+                 truth=train.df$class, correct =(knn.train.pred==train.df$class) )
+train.nn2d.plt <- ggplot(train.plt.df, aes(color=predicted, shape=correct,size=correct)) + 
+  geom_point(aes(x=x,y=y)) + 
+  scale_shape_manual(values = c(4,20)) + 
+  scale_size_manual(values=c(4,1)) 
+print(train.nn2d.plt)
+```
+
+```{r}
+test.plt.df <- tibble(x=test.df$x, y=test.df$y, predicted=as.factor(knn.test.pred), 
+                       truth=test.df$class, correct =(knn.test.pred==test.df$class) )
+test.nn2d.plt <- ggplot(test.plt.df, aes(color=predicted, shape=correct,size=correct)) + 
+  geom_point(aes(x=x,y=y)) + 
+  scale_shape_manual(values = c(4,20)) + 
+  scale_size_manual(values=c(4,1))
+print(test.nn2d.plt)
+
+```
