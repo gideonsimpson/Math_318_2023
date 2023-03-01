@@ -1,0 +1,261 @@
+---
+title: "2/27/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ISLR2)
+library(MASS) # for LDA and QDA regressions
+library(FNN)
+```
+
+# Nearest Neighbors, Continued
+
+Generate data:
+
+```{r}
+set.seed(100)
+
+# true means
+mu1 <- c(-1, -1)
+mu2 <- c(-1, 1)
+mu3 <- c(2,0)
+# true variances
+sigma1vals <- c(1., 1.)
+sigma2vals <- c(1., 1.)
+sigma3vals <- c(1., 2.)
+# priors
+prior <- c(0.25, 0.5, 0.25)
+# total number of samples
+n = 2* 10^4
+
+# training data
+# sample with replacement from 1,2,3 n times
+# with prob(1) = pi[1], prob(2)=pi[2], prob(3)=pi[3]
+class<- sample(1:3, n, replace = TRUE, prob=prior)
+# interpret as a categorical variable
+class <- factor(class)
+x <- numeric(n)
+y <- numeric(n)
+for(j in 1:n){
+  # loop through switching between cases
+  if(class[j]==1){
+    x[j] <- rnorm(1,mean = mu1[1], sd = sigma1vals[1])
+    y[j] <- rnorm(1,mean = mu1[2], sd = sigma1vals[2])
+  }else if(class[j]==2){
+    x[j] <- rnorm(1,mean = mu2[1], sd = sigma2vals[1])
+    y[j] <- rnorm(1,mean = mu2[2], sd = sigma2vals[2])
+  }else{
+    x[j] <- rnorm(1,mean = mu3[1], sd = sigma3vals[1])
+    y[j] <- rnorm(1,mean = mu3[2], sd = sigma3vals[2])
+  }
+}
+data.df <- tibble("class"=class, "x"=x, "y"=y)
+
+# split into training/testing sets
+train.df <- data.df[1:10000,]
+test.df <- data.df[-(1:10000),]
+
+```
+
+Training and testing:
+
+`knn` calling sequence is different than logistic or LDA/QDA classifiers:
+
+```{r}
+knn.train.pred <- knn(as.matrix(train.df[2:3]), 
+                     as.matrix(train.df[2:3]), # second argument are new points for evaluation
+                     as.matrix(train.df[1]), k=3) # 3 nearest neighbors
+table(knn.train.pred, train.df$class)
+
+sprintf("Training Error Rate = %g", mean(knn.train.pred != train.df$class))
+
+knn.test.pred <- knn(as.matrix(train.df[2:3]), 
+                     as.matrix(test.df[2:3]), 
+                     as.matrix(train.df[1]), k=3) # 3 nearest neighbors
+table(knn.test.pred, test.df$class)
+
+sprintf("Testing Error Rate = %g", mean(knn.test.pred != test.df$class))
+```
+
+```{r}
+train.plt.df <- tibble(x=train.df$x, y=train.df$y, predicted=as.factor(knn.train.pred), 
+                 truth=train.df$class, correct =(knn.train.pred==train.df$class) )
+train.nn2d.plt <- ggplot(train.plt.df, aes(color=correct, shape=predicted))+ geom_point(aes(x=x,y=y)) + ggtitle("Training Data")
+print(train.nn2d.plt)
+```
+
+```{r}
+test.plt.df <- tibble(x=test.df$x, y=test.df$y, predicted=as.factor(knn.test.pred), 
+                 truth=test.df$class, correct =(knn.test.pred==test.df$class) )
+test.nn2d.plt <- ggplot(test.plt.df, aes(color=correct, shape=predicted))+ geom_point(aes(x=x,y=y)) + ggtitle("Testing Data")
+print(test.nn2d.plt)
+```
+
+# Nonlinear Decision Boundaries
+
+```{r}
+n = 10^3
+x <- runif(n,-0.5,0.5)
+y <- runif(n,0,1)
+# the following turns the boolean TRUE/FALSE into integer 1/0
+class <- factor(1-as.integer(x< 0.25 * sin(2 * pi * y)))
+train.df <- tibble("x"=x, "y"=y,"class"=class)
+
+nonlinear.plt <- ggplot(train.df, aes(color=class)) + 
+  geom_point(aes(x=x,y=y)) +theme_classic()
+print(nonlinear.plt)
+
+```
+
+Create a testing set of the same type:
+
+```{r}
+x <- runif(n,-.5,.5)
+y <- runif(n,0,1)
+class <- factor(1-as.integer(x< 0.25 * sin(2 * pi * y)))
+test.df <- tibble("x"=x, "y"=y, "class"=class)
+
+```
+
+```{r}
+# logistic classifier
+logistic.fit <- glm(class~x+y, train.df, family = binomial)
+logistic.train.prob <- predict(logistic.fit, type = "response")
+logistic.train.pred<- rep(0, nrow(train.df))
+logistic.train.pred[logistic.train.prob>0.5] <- 1
+print(sprintf("Logistic Training Error Rate =%g",
+              mean(logistic.train.pred != train.df$class)))
+
+logistic.test.prob <- predict(logistic.fit, test.df, type = "response")
+logistic.test.pred<- rep(0, nrow(test.df))
+logistic.test.pred[logistic.test.prob>0.5] <- 1
+print(sprintf("Logistic Testing Error Rate =%g",
+              mean(logistic.test.pred != test.df$class)))
+
+# LDA classifier
+lda.fit <- lda(class~x+y, train.df)
+lda.train.pred <- predict(lda.fit)
+print(sprintf("LDA Training Error Rate =%g",
+              mean(lda.train.pred$class != train.df$class)))
+
+lda.test.pred <- predict(lda.fit, newdata = test.df)
+print(sprintf("LDA Testing Error Rate =%g",
+              mean(lda.test.pred$class != test.df$class)))
+
+# QDA classifier
+qda.fit <- qda(class~x+y, train.df)
+qda.train.pred <- predict(qda.fit)
+print(sprintf("QDA Training Error Rate =%g",
+              mean(qda.train.pred$class != train.df$class)))
+
+qda.test.pred <- predict(qda.fit, test.df)
+print(sprintf("QDA Testing Error Rate =%g",
+              mean(qda.test.pred$class != test.df$class)))
+
+# KNN classifier
+knn.train.pred <- knn(as.matrix(train.df[1:2]), as.matrix(train.df[1:2]),
+                as.matrix(train.df[3]), k=3)
+print(sprintf("KNN k=3 Training Error Rate =%g",
+              mean(knn.train.pred != train.df$class)))
+
+knn.test.pred <- knn(as.matrix(train.df[1:2]), as.matrix(test.df[1:2]),
+                      as.matrix(train.df[3]), k=3)
+print(sprintf("KNN k=3 Testing Error Rate =%g",
+              mean(knn.test.pred != test.df$class)))
+
+```
+
+Examine classifiers, graphically:
+
+```{r}
+logisitic.plt.df <- tibble(x=test.df$x, y=test.df$y, predicted=as.factor(logistic.test.pred),
+                      truth=test.df$class, correct =(logistic.test.pred==test.df$class) )
+logistic.plt <- ggplot(logisitic.plt.df, aes(color=predicted, shape=correct,size=correct)) +
+  geom_point(aes(x=x,y=y)) + ggtitle("Logisitic")+
+  scale_shape_manual(values = c(4,20)) +
+  scale_size_manual(values=c(4,1)) +
+  theme_classic()
+print(logistic.plt)
+
+lda.plt.df <- tibble(x=test.df$x, y=test.df$y, predicted=lda.test.pred$class,
+                           truth=test.df$class, correct =(lda.test.pred$class==test.df$class) )
+lda.plt <- ggplot(lda.plt.df, aes(color=predicted, shape=correct,size=correct)) +
+  geom_point(aes(x=x,y=y))  + ggtitle("LDA")+
+  scale_shape_manual(values = c(4,20)) +
+  scale_size_manual(values=c(4,1)) +
+  theme_classic()
+print(lda.plt)
+
+qda.plt.df <- tibble(x=test.df$x, y=test.df$y, predicted=qda.test.pred$class,
+                     truth=test.df$class, correct =(qda.test.pred$class==test.df$class) )
+qda.plt <- ggplot(qda.plt.df, aes(color=predicted, shape=correct,size=correct)) +
+  geom_point(aes(x=x,y=y))  + ggtitle("QDA")+
+  scale_shape_manual(values = c(4,20)) +
+  scale_size_manual(values=c(4,1)) +
+  theme_classic()
+print(qda.plt)
+
+knn.plt.df <- tibble(x=test.df$x, y=test.df$y, predicted=knn.test.pred,
+                     truth=test.df$class, correct =(knn.test.pred==test.df$class) )
+knn.plt <- ggplot(knn.plt.df, aes(color=predicted, shape=correct,size=correct)) +
+  geom_point(aes(x=x,y=y)) + ggtitle("kNN") +
+  scale_shape_manual(values = c(4,20)) +
+  scale_size_manual(values=c(4,1)) +
+  theme_classic()
+print(knn.plt)
+```
+
+# Model Error
+
+## Testing Variability
+
+After fitting a model with a training set for
+
+$$
+Y = \beta_0 + \beta_1 X + \epsilon
+$$
+
+Generate many testing sets and look at the variability of the testing mean squared error:
+
+```{r}
+# reset seed
+set.seed(100)
+
+# number of samples
+n = 100
+# create x values
+x = runif(n, 0,15)
+# set true coefficients
+beta0_true = 2.
+beta1_true = -1.5
+# set noise parameters
+eps = 1.
+y = beta0_true + beta1_true*x + eps * rnorm(length(x))
+train.df <- tibble("x"=x, "y"=y)
+
+# linear model
+lm.fit <- lm(y~x, train.df)
+
+# testing error
+n_tests = 100
+MSE = numeric(n_tests)
+for(j in 1:n_tests){
+  # each of these data sets is of size n, and we generate n_tests of them
+  x = runif(n,0,15)
+  y = beta0_true + beta1_true*x + eps * rnorm(length(x))
+  test.df <- tibble("x"=x, "y"=y)
+  # MSE from the j-th testing set trial
+  MSE[j]=mean((predict(lm.fit,test.df) -test.df$y)^2)
+}
+
+MSE.df <- tibble("MSE"=MSE)
+
+MSE.plt <- ggplot(MSE.df) + geom_histogram(aes(x=MSE),bins = 15) +
+  ggtitle("Mean Squared Error of a Linear Model",
+          subtitle = sprintf("%d Test Sets of Size %d", n_tests, n)) +
+  theme_classic()
+print(MSE.plt)
+
+```
