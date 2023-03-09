@@ -1,0 +1,137 @@
+---
+title: "3/8/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+# Linear Algebra Problems
+
+What happens when we only have $n=1$, but $p=1$ (and there are two unknowns:
+
+```{r}
+xy.df <- tibble(x=c(1), y = c(2))
+lm.fit <- lm(y~x, data = xy.df)
+lm.fit
+```
+
+$\beta_0=2$ and $\beta_1$ is `NA` because the matrix is singular.
+
+Return singular matrix errors:
+
+```{r}
+lm.fit <- lm(y~x, data = xy.df,singular.ok = FALSE)
+```
+
+# Large Data Problems
+
+Consider data
+
+$$
+Y = \beta_0 + \beta_1 X_1 + \sum_{j=2}^p \beta_j X_j + \epsilon,
+$$
+
+in the case that $\beta_2=\beta_3=\ldots \beta_p=0$.
+
+```{r}
+set.seed(100)
+
+# number of observations
+n = 50
+# total number of predictors
+p = 100
+# the x1 predictor and y
+x1 <- runif(0,1,n=n)
+y <- 1 + 2 * x1 + 0.1 * rnorm(n) #true model, \beta_0 = 1, \beta_1 = 2
+
+# fill the other p-1 variables with Gaussian noise by
+# first populating a matrix
+x_rest <- matrix(0.01 * rnorm(n *(p-1)), n, p-1)
+# then we name the columns using colnames and paste
+colnames(x_rest) <- paste("x",2:p, sep="")
+# now we glue the columns together into a single matrix
+data.matrix <- cbind(x1, x_rest, y)
+
+# this reinterprets the matrix as a data frame
+data.df <- as_tibble(data.matrix)
+
+# regress on all variables, without naming them
+lm.fit.all <- lm(y~., data = data.df, singular.ok=TRUE)
+```
+
+```{r}
+data.df
+```
+
+```{r}
+lm.fit.all$coefficients[1:5]
+```
+
+Patterns are being found that do not exist, only $X_1$ correlates with $Y$.
+
+```{r}
+confint(lm.fit.all)
+```
+
+Suppose we were smart about the regression:
+
+```{r}
+lm.fit.one <- lm(y~x1, data = data.df, singular.ok=TRUE)
+lm.fit.one
+```
+
+```{r}
+confint(lm.fit.one)
+```
+
+**GOAL** Can we automate the method of finding the "right" predictors.
+
+# Correlated Predictors
+
+## Noise Free Case
+
+```{r}
+set.seed(100)
+
+n = 100
+x1 <- runif(0,1,n = n)
+x2 <- 2 - x1 # no noise between x1 and x2
+y <- 1 + 2 * x1 + 3 * x2 + 0.1 * rnorm(n)
+data.df <- data.frame(x1=x1, x2=x2, y=y)
+
+lm.fit.all <- lm(y~., data = data.df, singular.ok=TRUE)
+print(coef(lm.fit.all))
+```
+
+Correlations gave us an `NA` for $\beta_2$.
+
+## Noisy Case
+
+```{r}
+set.seed(100)
+
+n = 100
+x1 <- runif(0,1,n = n)
+x2 <- 2 - x1 + 0.01 * rnorm(n) # added a tiny bit of noise
+y <- 1 + 2 * x1 + 3 * x2 + 0.1 * rnorm(n)
+data.df <- data.frame(x1=x1, x2=x2, y=y)
+
+lm.fit.all <- lm(y~., data = data.df, singular.ok=FALSE)
+print(coef(lm.fit.all))
+print(confint(lm.fit.all))
+```
+
+These CIs do not include the truth.
+
+## Smart Choice
+
+Only regress against $X_1$
+
+```{r}
+lm.fit.x1 <- lm(y~x1, data = data.df, singular.ok=TRUE)
+print(coef(lm.fit.x1))
+print(confint(lm.fit.x1))
+
+```

@@ -1,0 +1,192 @@
+---
+title: "3/6/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(MASS)
+library(ISLR2)
+library(boot)
+library(FNN)
+library(caret) # for CV for classifiers
+```
+
+# k-Fold Cross Validation (CV)
+
+k-Fold Cross Validation for the regression problem, $Y = f(X) +\epsilon$
+
+```{r}
+set.seed(100)
+
+# test/train sample size
+n = 2*10^2
+
+maxp = 10
+
+# preallocate an array with zeros
+loocv.MSE.vals <- rep(0,maxp)
+
+# generate the training set
+x <- runif(n,0,5)
+y <- exp(x)*(1 + .5 * rnorm(n))
+train.df <- tibble("x"=x, "y"=y)
+
+MSE.vals <- NULL
+Method.vals <- NULL
+p.vals <- NULL
+
+# loop over data sets and polynomial fits
+for(p in seq(maxp)){
+  glm.fit <- glm(y~poly(x,p), data=train.df)
+  
+  # defaults to LOOCV 
+  cv.err <- cv.glm(train.df,glm.fit)
+  p.vals <- append(p.vals,p)
+  MSE.vals <- append(MSE.vals,cv.err$delta[1])
+  Method.vals <- append(Method.vals,"LOOCV")
+
+  cv.err <- cv.glm(train.df,glm.fit, K=5)
+  p.vals <- append(p.vals,p)
+  MSE.vals <- append(MSE.vals,cv.err$delta[1])
+  Method.vals <- append(Method.vals, "5-Fold CV")
+
+  cv.err <- cv.glm(train.df,glm.fit, K=10)
+  p.vals <- append(p.vals,p)
+  MSE.vals <- append(MSE.vals,cv.err$delta[1])
+  Method.vals <- append(Method.vals, "10-Fold CV")
+  
+}
+# store results of experiment in a data frame
+MSE.df <- tibble(p=p.vals, MSE=MSE.vals, Method=Method.vals)
+MSE.df$Method <- as.factor(MSE.df$Method)
+#plot
+cv.plt <- ggplot(MSE.df,mapping = aes(x=p, y=MSE, color=Method)) +
+  geom_line(lwd=2) + 
+  labs(x ="Degree Polynomial", y = "MSE", title="MSE as a Function of Fit and CV Method") +
+  theme_classic()
+print(cv.plt)
+
+```
+
+Consistency across k-Fold and LOOCV at $p=3$
+
+## Application to Classifiers
+
+Here, we consider, in place of the MSE, the misclassification error rate. But the same techniques apply. This compares, LDA, QDA, logistic, and KNN, directly
+
+```{r}
+set.seed(100)
+
+n = 10^3
+#generate data
+y1 <- runif(n,-3,3)
+y2 <- runif(n,-3,3)
+# jitter the positions
+x1 <- y1+.1*rnorm(n)
+x2 <- y2+.1*rnorm(n)
+class <- factor(1-as.integer(0< y2-y2^3-y1))
+function.df <- tibble("x1"=x1, "x2"=x2, "class"=class)
+scatter.plt <- ggplot(function.df, aes(x=x1, y=x2, color=class)) +
+  geom_point() + theme_classic()
+print(scatter.plt)
+#ggsave("scatterclass.png",width = 6, height = 4)
+
+# set folds for Cross Validation
+K = 10
+folds <- createFolds(seq(nrow(function.df)),k=K)
+
+
+logistic_err = 0
+LDA_err = 0
+QDA_err= 0
+knn_err = 0
+
+# loop through the folds and compute the k fold error estimates
+for(j in seq(K)){
+  # extracts training and testing sets
+  train.df <- function.df[-folds[[j]],]
+  test.df <- function.df[folds[[j]],]
+
+  # train, predict, compute testing error in each case
+  logistic.train <- glm(class~x1+x2 , train.df, family = binomial)
+  logistic.prob <- predict(logistic.train,newdata = test.df, type = "response")
+  logistic.pred<- rep(0, nrow(test.df))
+  logistic.pred[logistic.prob>0.5] <- 1
+  logistic_err <-  logistic_err + mean(logistic.pred!= test.df$class)/K
+
+  lda.train <- lda(class~x1+x2, data = train.df)
+  lda.pred <- predict(lda.train, test.df)
+  LDA_err <- LDA_err + mean(lda.pred$class !=test.df$class)/K
+
+  qda.train <- qda(class~x1+x2, data = train.df)
+  qda.pred <- predict(qda.train, test.df)
+  QDA_err <- QDA_err + mean(qda.pred$class !=test.df$class)/K
+
+  knn.pred <- knn(as.matrix(train.df[1:2]), as.matrix(test.df[1:2]),
+                    as.matrix(train.df[3]), k=3)
+  knn_err <- knn_err + mean(knn.pred!= test.df$class)/K
+
+}
+
+sprintf("Logistic %d-fold Error = %g", K, logistic_err)
+sprintf("LDA %d-fold Error = %g", K, LDA_err)
+sprintf("QDA %d-fold Error = %g", K, QDA_err)
+sprintf("KNN with k=3 %d-fold Error = %g", K, knn_err)
+
+```
+
+**Exercise**: Do cross validation of kNN as a function of the number of nearest neighbors.
+
+# Bootstrapping
+
+Application to estimating the kurtosis of a random variable:
+
+$$
+\text{Kurtosis} = \frac{\mathbb{E}[(X-\mu)^4]}{\mathbb{E}[(X-\mu)^2]^2}
+$$
+
+This measures how far from normal a distribution is. A naive estimate is:
+
+$$
+\frac{\frac{1}{n}\sum_{i=1}^n (x_i-\hat\mu)^4}{(\frac{1}{n}\sum_{i=1}^n (x_i-\hat\mu)^2)^2}
+$$
+
+An error bound on our estimate of this can be formed by bootstrap methods. First, we generate data for this experiment
+
+```{r}
+set.seed(100)
+
+# number of samples in the data set
+n <- 10^3
+x <- rexp(n) # these are exponential random variables (non-Gaussians)
+
+x.df <- tibble(x=x)
+```
+
+The true Kurtosis for this distribution is 9. Next, we define the sample Kurtosis function:
+
+```{r}
+kurtosis.fn = function(data,index){
+  # extract values of interest
+  x = data$x[index]
+  # estimate the mean
+  mu = mean(x)
+  # compute the estiamted kurtosis
+  k = mean((x-mu)^4)/(mean((x-mu)^2)^2)
+  return (k)
+}
+```
+
+Finally, we form bootstrap estimates:
+
+```{r}
+bt<-boot(x.df,kurtosis.fn,R=10^3) # R is the number of Bootstrap samples
+
+```
+
+boot.ci(bt)
+
+```{r}
+boot.ci(bt)
+```
