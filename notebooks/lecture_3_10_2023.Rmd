@@ -1,0 +1,125 @@
+---
+title: "3/10/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(glmnet) # this ridge regression
+```
+
+# Ridge Regression in R
+
+Revisit the problem with more predictors than observations. The following data was previously generated
+
+```{r}
+set.seed(100)
+
+# number of observations
+n = 50
+# total number of predictors
+p = 100
+# the x1 predictor and y
+x1 <- runif(0,1,n=n)
+y <- 1 + 2 * x1 + 0.1 * rnorm(n) #true model, \beta_0 = 1, \beta_1 = 2
+
+# fill the other p-1 variables with Gaussian noise by
+# first populating a matrix
+x_rest <- matrix(0.01 * rnorm(n *(p-1)), n, p-1)
+# then we name the columns using colnames and paste
+colnames(x_rest) <- paste("x",2:p, sep="")
+# now we glue the columns together into a single matrix
+data.matrix <- cbind(x1, x_rest, y)
+
+# this reinterprets the matrix as a data frame
+data.df <- as_tibble(data.matrix)
+```
+
+To use `glmnet` for Ridge Regression, we need to extract the design matrix (without the intercept column), and store it as a matrix:
+
+```{r}
+X <- model.matrix(y~., data.df)[,-1] # -1 omits the first column, corresponding to the intercept
+```
+
+Fitting is then very similar to `glm`; however, we need to specify the $\lambda>0$ . The standard approach is not to do this for a single $\lambda$, but instead, an array of them:
+
+```{r}
+low = -4;
+high = 2;
+lambda.grid <- 10^seq(-4, 4,length = 100)
+ridge.fit <- glmnet(X,y, alpha = 0, lambda = lambda.grid)
+ridge.fit
+```
+
+Get the coefficients and store in a data frame:
+
+```{r}
+beta <-as.matrix(coef(ridge.fit))
+beta.df <- as_tibble(beta)
+beta.df$coef <- row.names(beta)
+beta.df
+```
+
+Reformat the data
+
+```{r}
+# spread out
+beta.df.long <- gather(beta.df,key=case,value,-coef)
+# relabel columns
+beta.df.long$case <- as.integer(gsub("s", "", beta.df.long$case))
+beta.df.long$lambda <-ridge.fit$lambda[beta.df.long$case+1]
+beta.df.long
+```
+
+Visualize the coefficients as a function of $\lambda$:
+
+```{r}
+# plot all coefficients
+beta.plt <- ggplot(beta.df.long[beta.df.long$coef!="(Intercept)",], 
+                   aes(x=lambda, y=value,color = coef,linetype = coef)) + 
+  geom_line() + theme(legend.position="none") +
+  scale_x_log10()  + ggtitle("Ridge Regression Coefficients") + ylab("Coefficients")
+print(beta.plt)
+```
+
+Study a single coefficient:
+
+```{r}
+beta1.plt<- ggplot(beta.df.long[beta.df.long$coef=="x1",], aes(x=lambda, y=value,
+color = coef, linetype = coef)) +
+geom_line() + theme(legend.position="none") +
+ggtitle("beta 1 Ridge Regression Coefficient") +
+scale_x_log10()
+print(beta1.plt)
+```
+
+Make new predictions with our model. `s` corresponds to $\lambda$. The `t` is for transpose
+
+```{r}
+predict(ridge.fit, s=1000, newx=t(runif(p)))
+```
+
+```{r}
+mean(y)
+```
+
+```{r}
+predict(ridge.fit, s=.1, newx=t(runif(1:100)))
+```
+
+Cross validate:
+
+```{r}
+cv.ridge <- cv.glmnet(X, y, alpha = 0, lambda = lambda.grid)
+```
+
+```{r}
+cv.ridge
+```
+
+`s=cv.ridge`\$lambda.min gets the coefficients with the MSE minimizing $\lambda$
+
+```{r}
+beta.minimal <- predict(ridge.fit, type = "coefficients", s = cv.ridge$lambda.min)
+beta.minimal
+```
