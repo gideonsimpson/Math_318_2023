@@ -1,0 +1,113 @@
+---
+title: "3/17/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ggfortify)
+library(mvtnorm)
+```
+
+# More unsupervised learning
+
+```{r}
+set.seed(100)
+mu1 <- c(2,-4)
+sigma1 <- matrix(c(2, 1, 1, 2), nrow=2)
+mu2 <- c(-1,2)
+sigma2 <- matrix(c(3, -0.1, -0.1, 3), nrow=2)
+samples1 <- rmvnorm(10^3, mean = mu1, sigma = sigma1)
+samples2 <- rmvnorm(10^3, mean = mu2, sigma = sigma2)
+clusters.samples <- as_tibble(rbind(samples1, samples2))
+colnames(clusters.samples) <- c("x","y")
+clusters.plt <- ggplot(data=clusters.samples, mapping = aes(x=x,y=y)) + geom_point()
+print(clusters.plt)
+```
+
+## Basic k-Means
+
+Run k-Means on this; note that we have to know how many clusters we expect to identify:
+
+```{r}
+kmeans.out <- kmeans(clusters.samples, 2, nstart = 200)
+```
+
+Check the output:
+
+```{r}
+names(kmeans.out)
+```
+
+```{r}
+length(kmeans.out$cluster)
+kmeans.out$centers
+```
+
+```{r}
+kmeans.out$tot.withinss
+
+kmeans.out$withinss
+sum(kmeans.out$withinss)
+```
+
+Visualize
+
+```{r}
+kmeans.out <- kmeans(clusters.samples, 2, nstart = 50)
+clusters.samples <- mutate(clusters.samples, cluster=as.factor(kmeans.out$cluster))
+kmeans.plt <- ggplot(data =clusters.samples, mapping = aes(x=x, y=y, color=cluster)) +
+  geom_point() + ggtitle("Classes Obtained from K Means")
+print(kmeans.plt)
+
+```
+
+## Combining k-Means and PCA
+
+```{r}
+
+```
+
+```{r}
+pr.scaled.out <- prcomp(clusters.samples[,1:2], scale=TRUE)
+
+kmeans.pca.plt <- autoplot(pr.scaled.out, 
+                           data = clusters.samples, 
+                           loadings=TRUE, 
+                           loadings.label=TRUE, 
+                           colour="cluster")
+
+print(kmeans.pca.plt)
+```
+
+## Application to Iris data set
+
+```{r}
+iris.df <- read_csv("../data/iris.data",col_names=FALSE)
+colnames(iris.df) <- c("sepal.length", "sepal.width", 
+                       "petal.length", "petal.width", "class")
+iris.df$class <- as_factor(iris.df$class)
+
+# compute principle components
+pca.iris <- prcomp(select_if(iris.df,is.numeric), scale=TRUE)
+
+pca.iris.plt <- autoplot(pca.iris, data =iris.df, 
+                         loadings=TRUE, loadings.label=TRUE, colour="class") + 
+  ggtitle("Coded PCA of Iris Data")
+
+print(pca.iris.plt)
+
+```
+
+```{r}
+set.seed(500)
+# try to identify classes of unmarked data
+iris.unmarked <- select_if(iris.df,is.numeric)
+kmeans.out <- kmeans(iris.unmarked, 3, nstart = 50)
+
+iris.marked <- mutate(iris.unmarked, type=as.factor(kmeans.out$cluster))
+pca.marked <- prcomp(select_if(iris.marked,is.numeric), scale=TRUE)
+kmeans.pca.iris.plt <- autoplot(pca.marked, data =iris.marked, loadings=TRUE, loadings.label=TRUE,colour="type") +ggtitle("Coded K-Means PCA of Iris Data")
+print(kmeans.pca.iris.plt)
+
+```

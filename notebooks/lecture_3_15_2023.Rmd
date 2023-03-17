@@ -1,0 +1,122 @@
+---
+title: "3/15/2023 Lecture"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(mvtnorm) # for multivariate normals
+library(ggfortify) # for PCA visualization
+```
+
+# Unsupervised Learning Problems
+
+How do we detect:
+
+-   Directions along which variations are greatest
+
+-   Clusters
+
+```{r}
+set.seed(100)
+mu <- c(3,-5)
+sigma <- matrix(c(2, 1, 1, 2), nrow=2)
+xy.samples <- as_tibble(rmvnorm(10^3, mean = mu, sigma = sigma))
+colnames(xy.samples) <- c("x","y")
+xy.plt <- ggplot(data=xy.samples, mapping = aes(x=x,y=y)) +geom_point()
+print(xy.plt)
+set.seed(100)
+mu1 <- c(2,-4)
+sigma1 <- matrix(c(2, 1, 1, 2), nrow=2)
+mu2 <- c(-1,2)
+sigma2 <- matrix(c(3, -0.1, -0.1, 3), nrow=2)
+samples1 <- rmvnorm(10^3, mean = mu1, sigma = sigma1)
+samples2 <- rmvnorm(10^3, mean = mu2, sigma = sigma2)
+clusters.samples <- as_tibble(rbind(samples1, samples2))
+colnames(clusters.samples) <- c("x","y")
+clusters.plt <- ggplot(data=clusters.samples, mapping = aes(x=x,y=y)) + 
+  geom_point()
+print(clusters.plt)
+```
+
+# PCA
+
+## Run PCA on the skewed normal
+
+```{r}
+pr.out <- prcomp(xy.samples)
+pr.out
+```
+
+Squares of the standard devs are the eigenvalues:
+
+```{r}
+pr.out$sdev^2
+```
+
+Proportion of variance explained (PVE):
+
+```{r}
+pr.var <- pr.out$sdev^2
+pve <- pr.var/sum(pr.var)
+pve
+```
+
+Suppose we scale our data (in general, we should):
+
+```{r}
+pr.scaled.out <- prcomp(xy.samples, scale=TRUE)
+pr.scaled.out
+```
+
+```{r}
+pr.scaled.var <- pr.scaled.out$sdev^2
+pve.scaled <- pr.scaled.var/sum(pr.scaled.var)
+pve.scaled
+```
+
+```{r}
+names(pr.scaled.out)
+```
+
+```{r}
+pr.scaled.out$center
+```
+
+## Biplot visualization
+
+See how data is distributed along the PCA1-PCA2 axes:
+
+```{r}
+pca.scaled.plt <- autoplot(pr.scaled.out) + 
+  ggtitle("PCA Scaled/No Loadings")
+print(pca.scaled.plt)
+
+pca.scaled.loadings.plt <- autoplot(pr.scaled.out,loadings=TRUE,
+                                    loadings.label=TRUE) + 
+  ggtitle("PCA Scaled/With Loadings")
+print(pca.scaled.loadings.plt)
+```
+
+## Iris Data
+
+This runs PCA on <https://archive.ics.uci.edu/ml/datasets/iris>, the iris data set.
+
+```{r}
+iris.df <- read_csv("../data/iris.data",col_names=FALSE, show_col_types = FALSE)
+colnames(iris.df) <- c("sepal.length", "sepal.width", 
+                       "petal.length", "petal.width", "class")
+iris.df$class <- as_factor(iris.df$class)
+
+# compute principle components
+pca.iris <- prcomp(select_if(iris.df,is.numeric),scale=TRUE)
+pr.var <- pca.iris$sdev^2
+pve <- pr.var/sum(pr.var)
+
+pve
+```
+
+```{r}
+iris.plt <- autoplot(pca.iris,loadings=TRUE,loadings.label=TRUE) +  ggtitle("PCA of Iris Data")
+print(iris.plt)
+```
